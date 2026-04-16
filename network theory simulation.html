@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RLC Analyzer | Fixed Time Window for ALL Damping Cases</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0a0f18;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+        }
+
+        .circuit-lab {
+            max-width: 1500px;
+            width: 100%;
+            background: #0f1622;
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(56, 189, 248, 0.15);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #070c14;
+            padding: 1.2rem 2rem;
+            border-bottom: 1px solid #1e2a3e;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #7dd3fc, #38bdf8);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .header p {
+            margin: 0.4rem 0 0;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 1.2rem;
+            background: #0f172a;
+            padding: 6px;
+            border-radius: 60px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 50px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            background: transparent;
+            color: #94a3b8;
+            border: none;
+            font-size: 0.9rem;
+        }
+
+        .mode-btn.active {
+            background: #1e40af;
+            color: white;
+            box-shadow: 0 2px 10px rgba(30, 64, 175, 0.3);
+        }
+
+        .analysis-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            padding: 1.8rem 2rem;
+            background: #0b1120;
+        }
+
+        .diagram-panel {
+            flex: 1.1;
+            min-width: 300px;
+            background: #0f172a;
+            border-radius: 1.5rem;
+            padding: 1rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid #1e2a45;
+        }
+
+        .controls-panel {
+            flex: 1;
+            min-width: 260px;
+            background: #0f172a;
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid #1e2a45;
+        }
+
+        .plot-panel {
+            flex: 2;
+            min-width: 320px;
+            background: #0f172a;
+            border-radius: 1.5rem;
+            padding: 0.8rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid #1e2a45;
+        }
+
+        .circuit-canvas-container {
+            background: #0a0f1a;
+            border-radius: 1.2rem;
+            padding: 0.5rem;
+            text-align: center;
+        }
+
+        canvas#circuitCanvas {
+            width: 100%;
+            background: #0a0f1a;
+            border-radius: 1rem;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .diagram-label {
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #7dd3fc;
+            margin-top: 8px;
+        }
+
+        .param-group {
+            margin-bottom: 1.4rem;
+        }
+
+        .param-group label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            color: #cbd5e6;
+            margin-bottom: 0.4rem;
+            font-size: 0.85rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            background: #1e2a45;
+            height: 5px;
+            border-radius: 10px;
+            accent-color: #38bdf8;
+        }
+
+        .param-value {
+            font-family: 'JetBrains Mono', monospace;
+            background: #1e2a45;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #7dd3fc;
+        }
+
+        .numeric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            align-items: center;
+        }
+
+        .numeric-input {
+            width: 90px;
+            border: 1px solid #2d3a5e;
+            border-radius: 30px;
+            padding: 5px 10px;
+            font-family: monospace;
+            text-align: right;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 8px 0;
+            border-radius: 40px;
+            cursor: pointer;
+            flex: 1;
+            font-size: 0.75rem;
+            transition: 0.2s;
+            min-width: 70px;
+        }
+
+        .btn-primary {
+            background: #1e40af;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: scale(0.97);
+        }
+
+        .btn-under {
+            background: #0d9488;
+        }
+        .btn-under:hover { background: #0f766e; }
+
+        .btn-critical {
+            background: #ea580c;
+        }
+        .btn-critical:hover { background: #c2410c; }
+
+        .btn-over {
+            background: #7c2d12;
+        }
+        .btn-over:hover { background: #9a3412; }
+
+        .btn-outline {
+            background: #1e2a45;
+            color: #94a3b8;
+            border: 1px solid #334155;
+        }
+
+        .btn-outline:hover {
+            background: #2d3a5e;
+            color: white;
+        }
+
+        .damping-card {
+            background: #0a0f1a;
+            border-radius: 1rem;
+            padding: 0.9rem;
+            margin-top: 1rem;
+            border-left: 4px solid #38bdf8;
+            transition: border-left-color 0.2s;
+        }
+
+        .damping-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #7dd3fc;
+        }
+
+        .calc-steps {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 10px;
+            margin: 8px 0;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.7rem;
+            border: 1px solid #1e2a45;
+        }
+
+        .calc-line {
+            font-family: monospace;
+            font-size: 0.7rem;
+            padding: 3px 0;
+            color: #cbd5e6;
+        }
+
+        .formula-highlight {
+            background: #1e2a45;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #7dd3fc;
+        }
+
+        .result-highlight {
+            font-weight: 800;
+            color: #f97316;
+            background: #2d1a0f;
+            padding: 0 4px;
+            border-radius: 8px;
+        }
+
+        .status-chip {
+            background: #0a0f1a;
+            border-radius: 1rem;
+            padding: 0.5rem;
+            font-size: 0.75rem;
+            margin-top: 1rem;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            padding: 1rem;
+            border-top: 1px solid #1e2a45;
+            background: #070c14;
+            color: #64748b;
+        }
+
+        @media (max-width: 1000px) {
+            .analysis-grid {
+                flex-direction: column;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="circuit-lab">
+    <div class="header">
+        <h1>🔌 RLC Circuit Analyzer | Fixed Time Window for ALL Cases</h1>
+        <p>Laplace Transform transient analysis · Now shows COMPLETE response for Underdamped, Critically Damped, AND Overdamped</p>
+    </div>
+
+    <div class="analysis-grid">
+        <div class="diagram-panel">
+            <div class="mode-toggle">
+                <button id="seriesModeBtn" class="mode-btn active">🔗 SERIES RLC</button>
+                <button id="parallelModeBtn" class="mode-btn">⚡ PARALLEL RLC</button>
+            </div>
+            <div class="circuit-canvas-container">
+                <canvas id="circuitCanvas" width="420" height="260" style="width:100%; height:auto; max-width:450px; aspect-ratio:420/260"></canvas>
+                <div class="diagram-label" id="circuitLabel">
+                    <span>🔁 Series RLC — DC Voltage Step Excitation</span>
+                </div>
+            </div>
+            <div class="status-chip" id="laplaceInfo">
+                <strong>🧠 Laplace Domain:</strong> Series: I(s) = V₀ / [s·(R + sL + 1/(sC))] → i(t)
+            </div>
+        </div>
+
+        <div class="controls-panel">
+            <div class="param-group">
+                <label>📏 Resistance R (Ω) <span id="R_val" class="param-value">10.0</span></label>
+                <input type="range" id="R_slider" min="1" max="500" step="1" value="10">
+                <div class="numeric-row">
+                    <span>✎ R:</span>
+                    <input type="number" id="R_num" class="numeric-input" step="1" value="10">
+                </div>
+            </div>
+            <div class="param-group">
+                <label>⚡ Inductance L (mH) <span id="L_val" class="param-value">10.0</span></label>
+                <input type="range" id="L_slider" min="1" max="200" step="1" value="10">
+                <div class="numeric-row">
+                    <span>✎ L:</span>
+                    <input type="number" id="L_num" class="numeric-input" step="1" value="10">
+                </div>
+            </div>
+            <div class="param-group">
+                <label>🔋 Capacitance C (μF) <span id="C_val" class="param-value">100.0</span></label>
+                <input type="range" id="C_slider" min="10" max="1000" step="10" value="100">
+                <div class="numeric-row">
+                    <span>✎ C:</span>
+                    <input type="number" id="C_num" class="numeric-input" step="10" value="100">
+                </div>
+            </div>
+            <div class="param-group">
+                <label id="sourceLabel">🔌 Step Voltage V₀ (V) <span id="V0_val" class="param-value">12.0</span></label>
+                <input type="range" id="V0_slider" min="0" max="30" step="0.5" value="12">
+                <div class="numeric-row">
+                    <span>✎ Value:</span>
+                    <input type="number" id="V0_num" class="numeric-input" step="0.5" value="12">
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="underBtn" class="btn btn-under">🔁 Underdamped</button>
+                <button id="criticalBtn" class="btn btn-critical">⚖️ Critically Damped</button>
+                <button id="overBtn" class="btn btn-over">🐢 Overdamped</button>
+                <button id="resetBtn" class="btn btn-outline">⟳ Reset</button>
+            </div>
+
+            <div class="damping-card" id="dampingCard">
+                <div class="damping-title">
+                    📐 <strong>DAMPING RATIO (ζ) — Step-by-Step</strong>
+                </div>
+                <div id="calcStepsContainer" class="calc-steps">
+                    <div class="calc-line">⚡ Computing...</div>
+                </div>
+                <div id="caseTypeDisplay" style="font-weight: 600; margin-top: 6px; text-align: center; font-size:0.8rem; padding: 4px; border-radius: 8px;">
+                    Underdamped · oscillatory
+                </div>
+            </div>
+        </div>
+
+        <div class="plot-panel">
+            <canvas id="responseChart" width="650" height="380" style="width:100%; height:auto; max-height:400px"></canvas>
+            <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 0.7rem; color: #64748b;">
+                <span id="timeAxisLabel">⏱️ Time (seconds) → FULL transient (adaptive window)</span>
+                <span id="responseLabel">📈 i(t) [A] — step response</span>
+            </div>
+        </div>
+    </div>
+    <footer>
+        💡 <strong>FIXED: Time window now adapts to damping!</strong> Overdamped responses get more time to reach steady state.<br>
+        <strong>Series formula:</strong> ζ = (R/2)·√(C/L) &nbsp;|&nbsp; <strong>Parallel formula:</strong> ζ = (1/(2R))·√(L/C)<br>
+        Try Overdamped button → You will see the response rise AND flatten to steady state (not just a peak).
+    </footer>
+</div>
+
+<script>
+    let circuitMode = 'series';
+    let R = 10.0;      
+    let L = 0.01;      
+    let C = 100e-6;    
+    let sourceValue = 12.0;
+    
+    let chart = null;
+
+    // DOM elements
+    const R_slider = document.getElementById('R_slider');
+    const L_slider = document.getElementById('L_slider');
+    const C_slider = document.getElementById('C_slider');
+    const V0_slider = document.getElementById('V0_slider');
+    const R_num = document.getElementById('R_num');
+    const L_num = document.getElementById('L_num');
+    const C_num = document.getElementById('C_num');
+    const V0_num = document.getElementById('V0_num');
+    const R_valSpan = document.getElementById('R_val');
+    const L_valSpan = document.getElementById('L_val');
+    const C_valSpan = document.getElementById('C_val');
+    const V0_valSpan = document.getElementById('V0_val');
+    const calcStepsContainer = document.getElementById('calcStepsContainer');
+    const caseTypeDisplay = document.getElementById('caseTypeDisplay');
+    const sourceLabel = document.getElementById('sourceLabel');
+    const laplaceInfo = document.getElementById('laplaceInfo');
+    const responseLabel = document.getElementById('responseLabel');
+    const circuitLabel = document.getElementById('circuitLabel');
+    const dampingCard = document.getElementById('dampingCard');
+    
+    const seriesBtn = document.getElementById('seriesModeBtn');
+    const parallelBtn = document.getElementById('parallelModeBtn');
+    const underBtn = document.getElementById('underBtn');
+    const criticalBtn = document.getElementById('criticalBtn');
+    const overBtn = document.getElementById('overBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    
+    function updateUIFromParams() {
+        R_slider.value = R;
+        L_slider.value = L * 1000;
+        C_slider.value = C * 1e6;
+        V0_slider.value = sourceValue;
+        R_num.value = R.toFixed(1);
+        L_num.value = (L*1000).toFixed(1);
+        C_num.value = (C*1e6).toFixed(0);
+        V0_num.value = sourceValue.toFixed(1);
+        R_valSpan.innerText = R.toFixed(1);
+        L_valSpan.innerText = (L*1000).toFixed(1);
+        C_valSpan.innerText = (C*1e6).toFixed(0);
+        V0_valSpan.innerText = sourceValue.toFixed(1);
+    }
+    
+    function readFromSliders() {
+        R = parseFloat(R_slider.value);
+        L = parseFloat(L_slider.value) / 1000;
+        C = parseFloat(C_slider.value) * 1e-6;
+        sourceValue = parseFloat(V0_slider.value);
+        updateUIFromParams();
+        refreshAll();
+    }
+    
+    function readFromNumbers() {
+        let newR = parseFloat(R_num.value);
+        let newL_mH = parseFloat(L_num.value);
+        let newC_uF = parseFloat(C_num.value);
+        let newSrc = parseFloat(V0_num.value);
+        if (!isNaN(newR) && newR > 0) R = Math.min(500, Math.max(1, newR));
+        if (!isNaN(newL_mH) && newL_mH > 0) L = Math.min(0.2, Math.max(0.001, newL_mH / 1000));
+        if (!isNaN(newC_uF) && newC_uF > 0) C = Math.min(1000e-6, Math.max(10e-6, newC_uF * 1e-6));
+        if (!isNaN(newSrc) && newSrc >= 0) sourceValue = Math.min(30, Math.max(0, newSrc));
+        updateUIFromParams();
+        refreshAll();
+    }
+    
+    function getDampingRatio() {
+        if (circuitMode === 'series') {
+            return (R / 2) * Math.sqrt(C / L);
+        } else {
+            if (R === 0) return 100;
+            return (1 / (2 * R)) * Math.sqrt(L / C);
+        }
+    }
+    
+    function getOmega0() {
+        return 1 / Math.sqrt(L * C);
+    }
+    
+    function getAlpha() {
+        if (circuitMode === 'series') {
+            return R / (2 * L);
+        } else {
+            return 1 / (2 * R * C);
+        }
+    }
+    
+    function computeResponse(t) {
+        if (t < 0) return 0;
+        let omega0 = getOmega0();
+        let alpha = getAlpha();
+        let zeta = getDampingRatio();
+        
+        if (circuitMode === 'series') {
+            if (R === 0 && Math.abs(zeta) < 1e-6) {
+                let omega = omega0;
+                return (sourceValue / (omega * L)) * Math.sin(omega * t);
+            }
+            if (Math.abs(zeta - 1) < 1e-6) {
+                return (sourceValue / L) * t * Math.exp(-alpha * t);
+            } else if (zeta < 1) {
+                let omega_d = omega0 * Math.sqrt(1 - zeta * zeta);
+                let A = sourceValue / (L * omega_d);
+                return A * Math.exp(-alpha * t) * Math.sin(omega_d * t);
+            } else {
+                let sqrtTerm = omega0 * Math.sqrt(zeta * zeta - 1);
+                let s1 = -alpha + sqrtTerm;
+                let s2 = -alpha - sqrtTerm;
+                let factor = sourceValue / L;
+                let diff = s1 - s2;
+                if (Math.abs(diff) < 1e-12) return 0;
+                return factor * ( (Math.exp(s1 * t) - Math.exp(s2 * t)) / diff );
+            }
+        } 
+        else {
+            let I0 = sourceValue;
+            let a = 1/(R*C);
+            let w0sq = 1/(L*C);
+            let discriminant = a*a - 4*w0sq;
+            if (Math.abs(discriminant) < 1e-8) {
+                return I0 * R * (1 - (1 + a*t/2)*Math.exp(-a*t/2));
+            } else if (discriminant < 0) {
+                let omega_d = Math.sqrt(w0sq - a*a/4);
+                let beta = a/2;
+                let V_final = I0 * R;
+                return V_final * (1 - Math.exp(-beta * t) * (Math.cos(omega_d * t) + (beta/omega_d) * Math.sin(omega_d * t)));
+            } else {
+                let delta = Math.sqrt(discriminant);
+                let s1 = (-a + delta)/2;
+                let s2 = (-a - delta)/2;
+                let V_final = I0 * R;
+                return V_final * (1 - (s2*Math.exp(s1*t) - s1*Math.exp(s2*t))/(s2 - s1));
+            }
+        }
+    }
+    
+    // FIXED: Adaptive time window that shows COMPLETE response for all damping cases
+    function generateResponseData() {
+        let zeta = getDampingRatio();
+        let omega0 = getOmega0();
+        let alpha = getAlpha();
+        
+        let t_max;
+        let points = 800;  // More points for smoother curves
+        
+        if (zeta < 0.99) {
+            // Underdamped: show enough oscillations AND settling
+            let omega_d = omega0 * Math.sqrt(1 - zeta * zeta);
+            let period = 2 * Math.PI / omega_d;
+            let settlingTime = 6 / alpha;  // 6 time constants for 99% settling
+            // Show at least 5 oscillations OR until settling, whichever is larger
+            t_max = Math.max(period * 6, settlingTime * 1.2);
+            t_max = Math.min(0.3, t_max);  // Cap at 0.3s for performance
+        } 
+        else if (zeta > 1.01) {
+            // Overdamped: need enough time to reach steady state
+            // Time constant for overdamped: dominated by the slower pole
+            let sqrtTerm = omega0 * Math.sqrt(zeta * zeta - 1);
+            let s1 = -alpha + sqrtTerm;  // slower pole (closer to zero)
+            let s2 = -alpha - sqrtTerm;  // faster pole
+            let slowerTimeConstant = 1 / Math.abs(s1);
+            let fasterTimeConstant = 1 / Math.abs(s2);
+            // Show until 99% of final value (about 5 time constants of slower pole)
+            t_max = Math.max(6 * slowerTimeConstant, 6 * fasterTimeConstant);
+            // Also ensure we see the full rise
+            let riseTime = 2.2 / (omega0);  // approximate
+            t_max = Math.max(t_max, riseTime * 5);
+            t_max = Math.min(0.5, t_max);  // Cap at 0.5s, but allow up to 0.5s for very slow overdamped
+        } 
+        else {
+            // Critically damped
+            let settlingTime = 6 / alpha;
+            t_max = settlingTime * 1.5;
+            t_max = Math.min(0.2, t_max);
+        }
+        
+        // Ensure minimum and reasonable bounds
+        t_max = Math.max(0.008, Math.min(0.5, t_max));
+        
+        let t_arr = [], y_arr = [];
+        for (let i = 0; i <= points; i++) {
+            let t = (i / points) * t_max;
+            t_arr.push(t);
+            y_arr.push(computeResponse(t));
+        }
+        
+        // Debug info for console (optional)
+        console.log(`Damping ζ=${zeta.toFixed(4)}, t_max=${t_max.toFixed(5)}s, points=${points}`);
+        
+        return { t_arr, y_arr, t_max };
+    }
+    
+    function updateDampingCalculations() {
+        let zeta = getDampingRatio();
+        let omega0 = getOmega0();
+        let alpha = getAlpha();
+        let L_mH = L * 1000;
+        let C_uF = C * 1e6;
+        
+        let stepsHtml = '';
+        if (circuitMode === 'series') {
+            let sqrtCL = Math.sqrt(C / L);
+            stepsHtml = `
+                <div class="calc-line"><strong>📐 Series RLC Damping Ratio Formula:</strong></div>
+                <div class="calc-line" style="background:#1a2538; padding:4px; border-radius:8px; margin:4px 0;">
+                    ζ = <span class="formula-highlight">R/2 · √(C/L)</span>
+                </div>
+                <div class="calc-line">① √(C/L) = √( ${C_uF.toFixed(0)} μF / ${L_mH.toFixed(1)} mH )</div>
+                <div class="calc-line"> = √( ${(C/L).toExponential(4)} ) = <strong>${sqrtCL.toFixed(6)}</strong></div>
+                <div class="calc-line">② ζ = (${R.toFixed(1)} / 2) × ${sqrtCL.toFixed(6)}</div>
+                <div class="calc-line"> = <span class="result-highlight">${zeta.toFixed(6)}</span></div>
+                <div class="calc-line">⚡ ω₀ = 1/√(LC) = ${omega0.toFixed(1)} rad/s &nbsp; α = R/(2L) = ${alpha.toFixed(1)} s⁻¹</div>
+            `;
+        } else {
+            let sqrtLC = Math.sqrt(L / C);
+            stepsHtml = `
+                <div class="calc-line"><strong>📐 Parallel RLC Damping Ratio Formula:</strong></div>
+                <div class="calc-line" style="background:#1a2538; padding:4px; border-radius:8px; margin:4px 0;">
+                    ζ = <span class="formula-highlight">1/(2R) · √(L/C)</span>
+                </div>
+                <div class="calc-line">① √(L/C) = √( ${L_mH.toFixed(1)} mH / ${C_uF.toFixed(0)} μF )</div>
+                <div class="calc-line"> = √( ${(L/C).toExponential(4)} ) = <strong>${sqrtLC.toFixed(6)}</strong></div>
+                <div class="calc-line">② 1/(2R) = 1 / (2 × ${R.toFixed(1)}) = ${(1/(2*R)).toFixed(6)}</div>
+                <div class="calc-line">③ ζ = ${(1/(2*R)).toFixed(6)} × ${sqrtLC.toFixed(6)} = <span class="result-highlight">${zeta.toFixed(6)}</span></div>
+                <div class="calc-line">⚡ ω₀ = 1/√(LC) = ${omega0.toFixed(1)} rad/s &nbsp; α = 1/(2RC) = ${alpha.toFixed(1)} s⁻¹</div>
+            `;
+        }
+        
+        // Update the display based on zeta value
+        if (zeta < 0.99) {
+            stepsHtml += `<div class="calc-line" style="color:#2dd4bf; margin-top:6px;">✅ <strong>UNDERDAMPED (ζ = ${zeta.toFixed(4)} &lt; 1)</strong> → Oscillatory decaying transient</div>`;
+            caseTypeDisplay.innerHTML = "🔁 UNDERDAMPED — Decaying oscillatory response (ζ < 1)";
+            caseTypeDisplay.style.background = "#0d3d3a";
+            caseTypeDisplay.style.color = "#2dd4bf";
+            dampingCard.style.borderLeftColor = "#2dd4bf";
+        } else if (zeta > 1.01) {
+            stepsHtml += `<div class="calc-line" style="color:#fdba74; margin-top:6px;">⚠️ <strong>OVERDAMPED (ζ = ${zeta.toFixed(4)} &gt; 1)</strong> → No oscillation, monotonic rise to steady state</div>`;
+            caseTypeDisplay.innerHTML = "🐢 OVERDAMPED — No oscillation, smooth rise to steady state (ζ > 1)";
+            caseTypeDisplay.style.background = "#3b2a1f";
+            caseTypeDisplay.style.color = "#fdba74";
+            dampingCard.style.borderLeftColor = "#fdba74";
+        } else {
+            stepsHtml += `<div class="calc-line" style="color:#4ade80; margin-top:6px;">⚖️ <strong>CRITICALLY DAMPED (ζ = ${zeta.toFixed(4)} ≈ 1)</strong> → Fastest settling without overshoot</div>`;
+            caseTypeDisplay.innerHTML = "⚖️ CRITICALLY DAMPED — Optimal response, no overshoot (ζ = 1)";
+            caseTypeDisplay.style.background = "#1a3a2a";
+            caseTypeDisplay.style.color = "#4ade80";
+            dampingCard.style.borderLeftColor = "#4ade80";
+        }
+        calcStepsContainer.innerHTML = stepsHtml;
+    }
+    
+    function refreshPlotAndUI() {
+        const { t_arr, y_arr, t_max } = generateResponseData();
+        updateDampingCalculations();
+        
+        let yLabel = circuitMode === 'series' ? `i(t) [A]  |  Step V₀ = ${sourceValue.toFixed(1)} V` : `v(t) [V]  |  Step I₀ = ${sourceValue.toFixed(1)} A`;
+        let yAxisName = circuitMode === 'series' ? 'Current i(t) [A]' : 'Voltage v(t) [V]';
+        responseLabel.innerText = circuitMode === 'series' ? '📈 i(t) [A] — step current response' : '📈 v(t) [V] — step voltage response';
+        
+        if (chart) {
+            chart.data.datasets[0].label = yLabel;
+            chart.data.datasets[0].data = y_arr;
+            chart.data.labels = t_arr.map(t => t.toFixed(5));
+            let maxVal = Math.max(...y_arr.map(v => Math.abs(v))) * 1.08;
+            if (maxVal < 0.01) maxVal = 0.5;
+            let minY = Math.min(0, ...y_arr) * 1.05;
+            if (y_arr.every(v => v >= 0)) minY = 0;
+            chart.options.scales.y.title.text = yAxisName;
+            chart.options.scales.y.suggestedMax = maxVal;
+            chart.options.scales.y.suggestedMin = minY;
+            chart.options.scales.x.title.text = `Time (s)  [0 to ${t_max.toFixed(5)} s] — FULL transient shown`;
+            chart.update();
+        } else {
+            initChart(t_arr, y_arr, t_max, yLabel, yAxisName);
+        }
+    }
+    
+    function initChart(labelsData, data, t_max, labelText, yAxisName) {
+        const ctx = document.getElementById('responseChart').getContext('2d');
+        if (chart) chart.destroy();
+        let maxVal = Math.max(...data.map(v => Math.abs(v))) * 1.1;
+        if (maxVal < 0.01) maxVal = 0.6;
+        let minY = Math.min(0, ...data) * 1.05;
+        if (data.every(v => v >= 0)) minY = 0;
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labelsData.map(t => t.toFixed(5)),
+                datasets: [{
+                    label: labelText,
+                    data: data,
+                    borderColor: '#f97316',
+                    backgroundColor: 'rgba(249, 115, 22, 0.08)',
+                    borderWidth: 2.8,
+                    pointRadius: 0,
+                    tension: 0.2,
+                    fill: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { 
+                    tooltip: { mode: 'index', intersect: false, callbacks: { label: (ctx) => `Value = ${ctx.raw.toFixed(4)}` } }, 
+                    legend: { labels: { font: { size: 11 }, color: '#94a3b8' } } 
+                },
+                scales: {
+                    x: { title: { display: true, text: `Time (s)  [0 to ${t_max.toFixed(5)} s] — COMPLETE transient`, font: { weight: 'bold' }, color: '#94a3b8' }, ticks: { color: '#94a3b8', maxTicksLimit: 8 }, grid: { color: '#1e2a45' } },
+                    y: { title: { display: true, text: yAxisName, font: { weight: 'bold' }, color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: '#1e2a45' }, suggestedMin: minY, suggestedMax: maxVal }
+                }
+            }
+        });
+    }
+    
+    function drawCircuitDiagram() {
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = 420, height = 260;
+        canvas.width = width; canvas.height = height;
+        ctx.clearRect(0, 0, width, height);
+        ctx.strokeStyle = '#7dd3fc';
+        ctx.lineWidth = 2;
+        ctx.fillStyle = '#7dd3fc';
+        ctx.font = '11px "Segoe UI", "Fira Code", monospace';
+        
+        if (circuitMode === 'series') {
+            circuitLabel.innerHTML = "🔁 Series RLC Circuit — DC Voltage Step Excitation";
+            laplaceInfo.innerHTML = `<strong>🧠 Laplace (Series):</strong> I(s) = V₀ / [s·(R + sL + 1/(sC))] → i(t)`;
+            const startX = 60, endX = 360, yTop = 75, yBottom = 185;
+            ctx.beginPath(); ctx.arc(startX, yTop, 18, 0, 2*Math.PI); ctx.stroke();
+            ctx.fillText("V₀", startX-6, yTop-8); ctx.fillText("+", startX-4, yTop+4); ctx.fillText("-", startX+8, yTop+4);
+            ctx.fillStyle = '#38bdf8'; ctx.fillText(`${sourceValue.toFixed(1)}V`, startX-18, yTop-14); ctx.fillStyle = '#7dd3fc';
+            ctx.beginPath(); ctx.moveTo(startX+18, yTop); ctx.lineTo(startX+55, yTop); ctx.stroke();
+            let rx = startX+55; ctx.beginPath(); ctx.moveTo(rx, yTop);
+            for (let i=0;i<5;i++) { let xOff = 12 + i*8, yOff = (i%2===0)?-10:10; ctx.lineTo(rx+xOff, yTop+yOff); }
+            ctx.lineTo(rx+52, yTop); ctx.stroke(); ctx.fillText(`${R.toFixed(1)} Ω`, rx+20, yTop-14);
+            ctx.beginPath(); ctx.moveTo(rx+52, yTop); ctx.lineTo(rx+95, yTop); ctx.stroke();
+            let lx = rx+95; ctx.beginPath();
+            for (let i=0;i<4;i++) { let cx = lx + i*10; ctx.moveTo(cx, yTop-7); ctx.quadraticCurveTo(cx+5, yTop, cx+10, yTop-7); }
+            ctx.stroke(); ctx.fillText(`${(L*1000).toFixed(1)} mH`, lx+12, yTop-14);
+            ctx.beginPath(); ctx.moveTo(lx+40, yTop); ctx.lineTo(lx+75, yTop); ctx.stroke();
+            let cxCap = lx+75; ctx.beginPath(); ctx.moveTo(cxCap, yTop-12); ctx.lineTo(cxCap, yTop+12);
+            ctx.moveTo(cxCap+12, yTop-12); ctx.lineTo(cxCap+12, yTop+12); ctx.stroke();
+            ctx.fillText(`${(C*1e6).toFixed(0)} μF`, cxCap+16, yTop-10);
+            ctx.beginPath(); ctx.moveTo(cxCap+12, yTop); ctx.lineTo(endX, yTop); ctx.lineTo(endX, yBottom); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(endX, yBottom); ctx.lineTo(startX, yBottom); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(startX, yBottom); ctx.lineTo(startX, yTop+18); ctx.stroke();
+            ctx.fillStyle = '#f97316'; ctx.fillText("i(t)", startX+120, yTop-22);
+        } else {
+            circuitLabel.innerHTML = "⚡ Parallel RLC Circuit — DC Current Step Excitation";
+            laplaceInfo.innerHTML = `<strong>🧠 Laplace (Parallel):</strong> V(s) = I₀ / [s·(1/R + 1/(sL) + sC)] → v(t)`;
+            const topY = 70, bottomY = 190, leftX = 60, rightX = 360;
+            ctx.beginPath(); ctx.arc(leftX, topY, 18, 0, 2*Math.PI); ctx.stroke();
+            ctx.fillText("I₀", leftX-8, topY-8); 
+            ctx.beginPath(); ctx.moveTo(leftX-4, topY+4); ctx.lineTo(leftX, topY-2); ctx.lineTo(leftX+4, topY+4); ctx.fill();
+            ctx.fillStyle = '#38bdf8'; ctx.fillText(`${sourceValue.toFixed(1)} A`, leftX-20, topY-16); ctx.fillStyle = '#7dd3fc';
+            ctx.beginPath(); ctx.moveTo(leftX+18, topY); ctx.lineTo(rightX, topY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(leftX, bottomY); ctx.lineTo(rightX, bottomY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(leftX+60, topY); ctx.lineTo(leftX+60, bottomY); ctx.stroke();
+            let rMidY = (topY+bottomY)/2;
+            ctx.beginPath(); ctx.moveTo(leftX+60-12, rMidY-8); ctx.lineTo(leftX+60, rMidY-2); ctx.lineTo(leftX+60-12, rMidY+4); ctx.lineTo(leftX+60, rMidY+10); ctx.stroke();
+            ctx.fillText(`${R.toFixed(1)} Ω`, leftX+60-25, rMidY-6);
+            ctx.beginPath(); ctx.moveTo(leftX+150, topY); ctx.lineTo(leftX+150, bottomY); ctx.stroke();
+            let lMidY = (topY+bottomY)/2;
+            ctx.beginPath();
+            for (let i=0;i<4;i++) { let cx = leftX+140 + i*6; ctx.moveTo(cx, lMidY-6); ctx.quadraticCurveTo(cx+3, lMidY, cx+6, lMidY-6); }
+            ctx.stroke(); ctx.fillText(`${(L*1000).toFixed(1)} mH`, leftX+150-28, lMidY-10);
+            ctx.beginPath(); ctx.moveTo(leftX+240, topY); ctx.lineTo(leftX+240, bottomY); ctx.stroke();
+            let cMidY = (topY+bottomY)/2;
+            ctx.beginPath(); ctx.moveTo(leftX+235, cMidY-8); ctx.lineTo(leftX+235, cMidY+8);
+            ctx.moveTo(leftX+245, cMidY-8); ctx.lineTo(leftX+245, cMidY+8); ctx.stroke();
+            ctx.fillText(`${(C*1e6).toFixed(0)} μF`, leftX+240-30, cMidY-10);
+            ctx.fillStyle = '#f97316'; ctx.fillText("v(t)", rightX-30, topY-10);
+        }
+    }
+    
+    // Preset values for different damping cases
+    function setUnderdamped() {
+        if (circuitMode === 'series') {
+            R = 10; L = 0.01; C = 100e-6;
+        } else {
+            R = 50; L = 0.01; C = 100e-6;
+        }
+        sourceValue = 12;
+        updateUIFromParams();
+        refreshAll();
+    }
+    
+    function setCriticallyDamped() {
+        if (circuitMode === 'series') {
+            let L_val = 0.01;
+            let C_val = 100e-6;
+            R = 2 * Math.sqrt(L_val / C_val);
+            L = L_val;
+            C = C_val;
+        } else {
+            let L_val = 0.01;
+            let C_val = 100e-6;
+            R = 0.5 * Math.sqrt(L_val / C_val);
+            L = L_val;
+            C = C_val;
+        }
+        sourceValue = 12;
+        updateUIFromParams();
+        refreshAll();
+    }
+    
+    function setOverdamped() {
+        if (circuitMode === 'series') {
+            R = 200; L = 0.01; C = 100e-6;
+        } else {
+            R = 2; L = 0.01; C = 100e-6;
+        }
+        sourceValue = 12;
+        updateUIFromParams();
+        refreshAll();
+    }
+    
+    function resetDefault() {
+        R = 10; L = 0.01; C = 100e-6; sourceValue = 12;
+        updateUIFromParams();
+        refreshAll();
+    }
+    
+    function setMode(mode) {
+        circuitMode = mode;
+        if (mode === 'series') {
+            seriesBtn.classList.add('active');
+            parallelBtn.classList.remove('active');
+            sourceLabel.innerHTML = "🔌 Step Voltage V₀ (V) <span id='V0_val' class='param-value'>12.0</span>";
+        } else {
+            parallelBtn.classList.add('active');
+            seriesBtn.classList.remove('active');
+            sourceLabel.innerHTML = "⚡ Step Current I₀ (A) <span id='V0_val' class='param-value'>12.0</span>";
+        }
+        refreshAll();
+    }
+    
+    function refreshAll() {
+        refreshPlotAndUI();
+        drawCircuitDiagram();
+    }
+    
+    function bindEvents() {
+        R_slider.addEventListener('input', () => { readFromSliders(); drawCircuitDiagram(); });
+        L_slider.addEventListener('input', () => { readFromSliders(); drawCircuitDiagram(); });
+        C_slider.addEventListener('input', () => { readFromSliders(); drawCircuitDiagram(); });
+        V0_slider.addEventListener('input', () => { readFromSliders(); drawCircuitDiagram(); });
+        R_num.addEventListener('change', () => { readFromNumbers(); drawCircuitDiagram(); });
+        L_num.addEventListener('change', () => { readFromNumbers(); drawCircuitDiagram(); });
+        C_num.addEventListener('change', () => { readFromNumbers(); drawCircuitDiagram(); });
+        V0_num.addEventListener('change', () => { readFromNumbers(); drawCircuitDiagram(); });
+        underBtn.addEventListener('click', () => { setUnderdamped(); drawCircuitDiagram(); });
+        criticalBtn.addEventListener('click', () => { setCriticallyDamped(); drawCircuitDiagram(); });
+        overBtn.addEventListener('click', () => { setOverdamped(); drawCircuitDiagram(); });
+        resetBtn.addEventListener('click', () => { resetDefault(); drawCircuitDiagram(); });
+        seriesBtn.addEventListener('click', () => setMode('series'));
+        parallelBtn.addEventListener('click', () => setMode('parallel'));
+    }
+    
+    function init() {
+        bindEvents();
+        refreshAll();
+    }
+    init();
+</script>
+</body>
+</html>
